@@ -16,18 +16,22 @@ url = st.text_input("Enter the URL of the blog post you want to convert:")
 
 if st.button("Generate Podcast"):
     if url:
-        status_message = st.empty()
+        # Clear previous results from session state when starting a new generation
+        if 'generation_complete' in st.session_state:
+            del st.session_state['generation_complete']
+        if 'audio_bytes' in st.session_state:
+            del st.session_state['audio_bytes']
+        if 'podcast_script' in st.session_state:
+            del st.session_state['podcast_script']
         
+        status_message = st.empty()
         try:
-            # Scrape content
             status_message.info("1/4: Scraping blog content... 🕸️")
             scrape_result = firecrawl_app.scrape_url(url=url)
             
-            # Generate script with Gemini
             status_message.info("2/4: Generating podcast script... ✍️")
             prompt = f"""
             You are an expert podcast host. Your task is to take the following blog post content and convert it into an engaging and conversational podcast script.
-
             Follow these instructions:
             1.  Start with a catchy introduction.
             2.  Summarize the key points in a logical, conversational order.
@@ -44,36 +48,39 @@ if st.button("Generate Podcast"):
             response = model.generate_content(prompt)
             podcast_script = response.text
             
-            # Generate audio with ElevenLabs
             status_message.info("3/4: Generating audio... 🎧")
             audio_generator = elevenlabs_client.text_to_speech.convert(
                 text=podcast_script,
                 voice_id="21m00Tcm4TlvDq8ikWAM",  
-                model_id="eleven_multilingual_v2",  
-                output_format="mp3_44100_128"  
+                model_id="eleven_multilingual_v2", 
+                output_format="mp3_44100_128"
             )
-
-            # Collect audio chunks into bytes (fix for generator output)
             audio_bytes = b"".join(chunk for chunk in audio_generator)
 
-            # Display final results
             status_message.success("4/4: Podcast ready! ✨")
-            
-            st.subheader("Listen to Your Podcast:")
-            st.audio(audio_bytes, format='audio/mpeg')  # Fixed: Pass bytes instead of generator
 
-            # download button
-            st.download_button(
-                label="Download Podcast (MP3) ",
-                data=audio_bytes,
-                file_name="podcast_episode.mp3",
-                mime="audio/mpeg"
-            )
-
-            st.subheader("Generated Script:")
-            st.markdown(podcast_script)
+            # Save results to session state 
+            st.session_state['audio_bytes'] = audio_bytes
+            st.session_state['podcast_script'] = podcast_script
+            st.session_state['generation_complete'] = True
 
         except Exception as e:
-            status_message.error(f"An error occurred: {e}")
+            st.error(f"An error occurred: {e}")
     else:
         st.error("Please enter a URL first.")
+
+# New section to display results from session state 
+# This block runs independently of the button click, so it displays on reruns.
+if 'generation_complete' in st.session_state and st.session_state.generation_complete:
+    st.subheader("Listen to Your Podcast:")
+    st.audio(st.session_state['audio_bytes'], format='audio/mpeg')
+
+    st.download_button(
+        label="Download Podcast (MP3) ",
+        data=st.session_state['audio_bytes'],
+        file_name="podcast_episode.mp3",
+        mime="audio/mpeg"
+    )
+
+    st.subheader("Generated Script:")
+    st.markdown(st.session_state['podcast_script'])
