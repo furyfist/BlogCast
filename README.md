@@ -2,6 +2,8 @@
 
 Blog Cast is a simple web app that turns any blog post into a ready-to-listen podcast episode. Just paste a URL, and AI agents will scrape the content, write a conversational script, and generate the audio for you.
 
+![alt text](image.png)
+
 ## Key Features
 
   * **URL to Audio:** Converts any public blog post into an audio file.
