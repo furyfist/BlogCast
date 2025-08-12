@@ -58,7 +58,6 @@ Install all the required Python libraries from the `requirements.txt` file.
 pip install -r requirements.txt
 ```
 
-*(If you don't have a `requirements.txt` file, you can create one with `pip freeze > requirements.txt` after installing the packages manually.)*
 
 ### 4\. Set Up API Keys
 
